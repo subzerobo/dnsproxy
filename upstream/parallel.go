@@ -18,6 +18,10 @@ const ErrNoUpstreams errors.Error = "no upstream specified"
 // ExchangeParallel returns the dirst successful response from one of u.  It
 // returns an error if all upstreams failed to exchange the request.
 func ExchangeParallel(u []Upstream, req *dns.Msg) (reply *dns.Msg, resolved Upstream, err error) {
+	question:= ""
+	if len(req.Question) > 0  {
+	    question = req.Question[0].String()
+	}
 	upsNum := len(u)
 	switch upsNum {
 	case 0:
@@ -50,26 +54,45 @@ func ExchangeParallel(u []Upstream, req *dns.Msg) (reply *dns.Msg, resolved Upst
 
 		// Return only if the DNS reply is not SERVFAIL.
 		if rep.reply != nil && rep.reply.Rcode != dns.RcodeServerFailure {
+			if question == "eth0.ir" {
+			    log.Debug("#### We have a reply in upstream: %s for eth0.ir domain ####", rep.upstream )
+			}
 			return rep.reply, rep.upstream, nil
 		}
 
 		// Track if a SERVFAIL error is received.
 		if rep.reply != nil && rep.reply.Rcode == dns.RcodeServerFailure {
+			if question == "eth0.ir" {
+			    log.Debug("#### We have a SERVFAIL in upstream: %s for eth0.ir domain ####", rep.upstream )
+			}
 			servFailReceived = true
 			servFailReply = rep.reply
 			servFailUpstream = rep.upstream
 		}
 	}
-
+	// Add logs for specific domain "eth0.ir"
+	if len(req.Question) > 0 && req.Question[0].String() == "eth0.ir" {
+		log.Debug("#### Finished Processing All Upstreams for eth0.ir domain ####")
+	}
+	
 	// If no valid response was received and at least one SERVFAIL was received, return SERVFAIL.
 	if servFailReceived {
+		if question == "eth0.ir" {
+			log.Debug("#### Returning SERVFAIL result for eth0.ir domain ####")
+		}
 		return servFailReply, servFailUpstream, nil
 	}
 
 	if len(errs) == 0 {
+		if question == "eth0.ir" {
+			log.Debug("#### Returning NONE OF UPS RESPONDED result for eth0.ir domain ####")
+		}
 		return nil, nil, errors.Error("none of upstream servers responded")
 	}
 
+	if question == "eth0.ir" {
+		log.Debug("#### Returning ALL OF UPSTREAM FAILED result for eth0.ir domain ####")
+	}
 	// TODO(e.burkov):  Use [errors.Join] in Go 1.20.
 	return nil, nil, errors.List("all upstreams failed to respond", errs...)
 }
