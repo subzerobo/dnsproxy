@@ -375,8 +375,8 @@ func initUpstreams(config *proxy.Config, options *Options) {
 	}
 
 	var err error
-
 	timeout := options.Timeout.Duration
+	log.Debug("#### The value of timeout is: %s", timeout)
 	upsOpts := &upstream.Options{
 		HTTPVersions:       httpVersions,
 		InsecureSkipVerify: options.Insecure,
