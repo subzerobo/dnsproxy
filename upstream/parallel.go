@@ -63,7 +63,7 @@ func ExchangeParallel(u []Upstream, req *dns.Msg) (reply *dns.Msg, resolved Upst
 
 		// Track if a SERVFAIL error is received.
 		if rep.reply != nil && rep.reply.Rcode == dns.RcodeServerFailure {
-			if question == "eth0.ir" {
+			if question == "eth0.ir." {
 			    log.Debug("#### We have a SERVFAIL in upstream: %s for eth0.ir domain ####", rep.upstream )
 			}
 			servFailReceived = true
@@ -72,7 +72,7 @@ func ExchangeParallel(u []Upstream, req *dns.Msg) (reply *dns.Msg, resolved Upst
 		}
 	}
 	// Add logs for specific domain "eth0.ir"
-	if len(req.Question) > 0 && req.Question[0].String() == "eth0.ir." {
+	if question == "eth0.ir." {
 		log.Debug("#### Finished Processing All Upstreams for eth0.ir domain ####")
 	}
 	
