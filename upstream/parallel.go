@@ -37,6 +37,9 @@ func ExchangeParallel(u []Upstream, req *dns.Msg) (reply *dns.Msg, resolved Upst
 	}
 
 	errs := []error{}
+	servFailReceived := false
+	var servFailReply *dns.Msg  // Store the SERVFAIL reply
+	var servFailUpstream Upstream  // Store the upstream that gave SERVFAIL
 	for range u {
 		rep := <-ch
 		if rep.err != nil {
@@ -45,9 +48,22 @@ func ExchangeParallel(u []Upstream, req *dns.Msg) (reply *dns.Msg, resolved Upst
 			continue
 		}
 
-		if rep.reply != nil {
+		// Return only if the DNS reply is not SERVFAIL.
+		if rep.reply != nil && rep.reply.Rcode != dns.RcodeServerFailure {
 			return rep.reply, rep.upstream, nil
 		}
+
+		// Track if a SERVFAIL error is received.
+		if rep.reply != nil && rep.reply.Rcode == dns.RcodeServerFailure {
+			servFailReceived = true
+			servFailReply = rep.reply
+			servFailUpstream = rep.upstream
+		}
+	}
+
+	// If no valid response was received and at least one SERVFAIL was received, return SERVFAIL.
+	if servFailReceived {
+		return servFailReply, servFailUpstream, nil
 	}
 
 	if len(errs) == 0 {
